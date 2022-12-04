@@ -27,7 +27,7 @@ HOMEWORK_VERDICTS = {
 
 
 def check_tokens():
-    """Проверка существования внешних переменных"""
+    """Проверка существования внешних переменных."""
     if PRACTICUM_TOKEN is None:
         message = 'Отсутствует токен практикума'
         logging.critical(message)
@@ -44,7 +44,7 @@ def check_tokens():
 
 
 def send_message(bot, message):
-    """Отправляет сообщение в телеграм-чат"""
+    """Отправляет сообщение в телеграм-чат."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except Exception:
@@ -53,7 +53,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    """Делает запрос к единственному эндпойнту Практикум.Домашки"""
+    """Делает запрос к единственному эндпойнту Практикум.Домашки."""
     try:
         homework = requests.get(ENDPOINT, headers=HEADERS, params=timestamp)
     except Exception as error:
@@ -75,7 +75,7 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
-    """Проверяет, что ответ от ПРАКТИКУМа соответствует ожидаемому"""
+    """Проверяет, что ответ от ПРАКТИКУМа соответствует ожидаемому."""
     if isinstance(response, dict) is False:
         message = f'responce вернул не словарь, а {type(response)}'
         logging.exception(message)
@@ -93,7 +93,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Создает сообщение о статусе домашнего задания"""
+    """Создает сообщение о статусе домашнего задания."""
     try:
         homework_name = homework['homework_name']
     except KeyError as exc:

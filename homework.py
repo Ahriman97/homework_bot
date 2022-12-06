@@ -28,19 +28,7 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверка существования внешних переменных."""
-    if PRACTICUM_TOKEN is None:
-        message = 'Отсутствует токен практикума'
-        logging.critical(message)
-        return False
-    if TELEGRAM_TOKEN is None:
-        message = 'Отсутствует токен телеги'
-        logging.critical(message)
-        return False
-    if TELEGRAM_CHAT_ID is None:
-        message = 'Отсутствует id чата'
-        logging.critical(message)
-        return False
-    return True
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
@@ -49,29 +37,32 @@ def send_message(bot, message):
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except Exception:
         logging.error('Ошибка отправки сообщения в телеграм')
-    logging.debug('Сообщение отправлено в телеграм')
+    else:
+        logging.debug('Сообщение отправлено в телеграм')
 
 
 def get_api_answer(timestamp):
     """Делает запрос к единственному эндпойнту Практикум.Домашки."""
     try:
-        homework = requests.get(ENDPOINT, headers=HEADERS, params=timestamp)
+        response = requests.get(ENDPOINT, headers=HEADERS, params=timestamp)
     except Exception as error:
-        logging.error(f'Ошибка при запросе к основному API: {error}')
-        return {}
+        message = f'Ошибка при запросе к основному API: {error}'
+        logging.error(message)
+        raise error(message)
+#    try:
+#        response
+#    except ValueError:
+#        logging.exception(f'Возникла ошибка, текст ответа:{response.text}')
+#        return {}
+    if response.status_code != HTTPStatus.OK:
+        logging.error(f'Код ответа API: {response.status_code}')
+        response.raise_for_status()
     try:
-        homework = requests.get(ENDPOINT, headers=HEADERS, params=timestamp)
-    except ValueError:
-        logging.exception(f'Возникла ошибка, текст ответа:{homework.text}')
-        return {}
-    if homework.status_code != HTTPStatus.OK:
-        logging.error(f'Код ответа API: {homework.status_code}')
-        homework.raise_for_status()
-    try:
-        return homework.json()
+        return response.json()
     except Exception as error:
-        logging.error(f'Ошибка преобразования к формату json: {error}')
-        return {}
+        message = f'Ошибка преобразования к формату json: {error}'
+        logging.error(message)
+        raise TypeError(message)
 
 
 def check_response(response):
@@ -119,16 +110,16 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    logging.basicConfig(
-        level=logging.INFO,
-        filename='main.log',
-        filemode='w',
-        format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
-    )
-    last_message = 'none'
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time()) - 86400
     if check_tokens() is True:
+        logging.basicConfig(
+            level=logging.INFO,
+            filename='main.log',
+            filemode='w',
+            format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
+        )
+        last_message = 'none'
+        bot = telegram.Bot(token=TELEGRAM_TOKEN)
+        timestamp = int(time.time()) - 86400
         while True:
             try:
                 response_result = get_api_answer(timestamp)
@@ -145,6 +136,10 @@ def main():
                 send_message(bot, f'Сбой в работе программы: {error}')
             finally:
                 time.sleep(RETRY_PERIOD)
+    else:
+        message = 'отсутствует один или несколько внешних ключей'
+        logging.error(message)
+        raise TypeError(message)
 
 
 if __name__ == '__main__':

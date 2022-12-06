@@ -49,11 +49,6 @@ def get_api_answer(timestamp):
         message = f'Ошибка при запросе к основному API: {error}'
         logging.error(message)
         raise error(message)
-#    try:
-#        response
-#    except ValueError:
-#        logging.exception(f'Возникла ошибка, текст ответа:{response.text}')
-#        return {}
     if response.status_code != HTTPStatus.OK:
         logging.error(f'Код ответа API: {response.status_code}')
         response.raise_for_status()
@@ -138,7 +133,7 @@ def main():
                 time.sleep(RETRY_PERIOD)
     else:
         message = 'отсутствует один или несколько внешних ключей'
-        logging.error(message)
+        logging.critical(message)
         raise TypeError(message)
 
 

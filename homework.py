@@ -14,6 +14,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
+WHATCH_PERIOD = 86400
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -105,37 +106,37 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
+    logging.basicConfig(
+        level=logging.INFO,
+        filename='main.log',
+        filemode='w',
+        format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
+    )
+    last_message = 'none'
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    timestamp = int(time.time()) - WHATCH_PERIOD
+    while True:
+        try:
+            response_result = get_api_answer(timestamp)
+            homeworks = check_response(response_result)
+            logging.info("Список домашних работ получен")
+            if len(homeworks) > 0:
+                status = parse_status(homeworks[0])
+                if status != last_message:
+                    send_message(bot, status)
+                    last_message = status
+            else:
+                logging.info("Новые задания не обнаружены")
+        except Exception as error:
+            send_message(bot, f'Сбой в работе программы: {error}')
+        finally:
+            time.sleep(RETRY_PERIOD)
+
+
+if __name__ == '__main__':
     if check_tokens() is True:
-        logging.basicConfig(
-            level=logging.INFO,
-            filename='main.log',
-            filemode='w',
-            format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
-        )
-        last_message = 'none'
-        bot = telegram.Bot(token=TELEGRAM_TOKEN)
-        timestamp = int(time.time()) - 86400
-        while True:
-            try:
-                response_result = get_api_answer(timestamp)
-                homeworks = check_response(response_result)
-                logging.info("Список домашних работ получен")
-                if len(homeworks) > 0:
-                    status = parse_status(homeworks[0])
-                    if status != last_message:
-                        send_message(bot, status)
-                        last_message = status
-                else:
-                    logging.info("Новые задания не обнаружены")
-            except Exception as error:
-                send_message(bot, f'Сбой в работе программы: {error}')
-            finally:
-                time.sleep(RETRY_PERIOD)
+        main()
     else:
         message = 'отсутствует один или несколько внешних ключей'
         logging.critical(message)
         raise TypeError(message)
-
-
-if __name__ == '__main__':
-    main()
